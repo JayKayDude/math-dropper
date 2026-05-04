@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Math Dropper</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #000; overflow: hidden; font-family: monospace; }
+      canvas { display: block; }
+      #hud {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        color: #ff2244;
+      }
+      #score {
+        position: absolute;
+        top: 24px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 28px;
+        letter-spacing: 4px;
+        text-shadow: 0 0 12px #ff2244, 0 0 24px #ff2244;
+      }
+      #equation {
+        position: absolute;
+        bottom: 24px; right: 32px;
+        font-size: 16px;
+        opacity: 0.5;
+        letter-spacing: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <div id="score">0</div>
+      <div id="equation">f(x) = 1/x</div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
