@@ -89,13 +89,27 @@ export function getDifficulty(floor, forcedType = undefined) {
   } else if (funcType === FuncType.ABS || funcType === FuncType.ABS_INV) {
     a = 0.3 + Math.random() * Math.min(1.4, 0.4 + f * 0.07);
     h = (Math.random() - 0.5) * 6;
-    k = (Math.random() - 0.5) * 5;
+    if (funcType === FuncType.ABS_INV) {
+      // ABS_INV gap (z ≥ a|x-h|+k) shrinks outward — must exist at |x-h|=10.
+      // Worst-case k rises by animAmplitude*0.6 during animation.
+      const kCeil = (1 - a) * 10 - 3.0 - animAmplitude * 0.6;
+      k = kCeil - Math.random() * 1.5;
+    } else {
+      k = (Math.random() - 0.5) * 5;
+    }
 
   } else if (funcType === FuncType.ABS_NEG || funcType === FuncType.ABS_NEG_INV) {
-    // Negative a → inverted V ceiling. Offset k downward so the V is centred.
-    a = -(0.3 + Math.random() * Math.min(1.4, 0.4 + f * 0.07));
-    h = (Math.random() - 0.5) * 6;
-    k = -(2 + Math.random() * 3);  // ceiling hangs above the middle range
+    a = -(0.3 + Math.random() * Math.min(1.2, 0.3 + f * 0.07));
+    h = (Math.random() - 0.5) * 4;
+    if (funcType === FuncType.ABS_NEG) {
+      // ABS_NEG gap (z ≤ a|x-h|+k) shrinks outward — must exist at |x-h|=10.
+      // Worst-case k drops by animAmplitude*0.6 during animation.
+      const absA = Math.abs(a);
+      const kFloor = (absA - 1) * 10 + 3.0 + animAmplitude * 0.6;
+      k = kFloor + Math.random() * 1.5;
+    } else {
+      k = (Math.random() - 0.5) * 4;
+    }
 
   } else if (funcType === FuncType.CIRCLE || funcType === FuncType.CIRCLE_INV) {
     // a = radius (3.5–6.5).  Center shifts more with floor.

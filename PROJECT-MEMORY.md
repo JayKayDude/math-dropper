@@ -32,6 +32,14 @@
 
 ## Key Decisions
 
+### ABS Passability Fix (2026-05-06)
+- `ABS_INV` (solid = z < a|x-h|+k, a>0): gap shrinks outward — at `|x-h|=10`, gap only exists if `k < (1-a)*10`. For large `a`, k must be negative.
+  - Fix: `kCeil = (1-a)*10 - 3 - animAmplitude*0.6`; k spawns at or below kCeil.
+- `ABS_NEG` (solid = z > a|x-h|+k, a<0): gap shrinks outward — at `|x-h|=10`, gap only exists if `k > (|a|-1)*10`.
+  - Fix: `kFloor = (|a|-1)*10 + 3 + animAmplitude*0.6`; k spawns at or above kFloor.
+- Analytical proof + 3,682-test simulation confirms zero impossible frames across all 30 FuncTypes, all floor levels, full animation cycles.
+- Other 28 types were already safe: their gaps open outward from center, split the playfield in halves, or use bounded shapes.
+
 ### Math Function System
 - 30 FuncTypes across 15 pairs (rational, linear, quadratic, cubic, abs, circle, sine, exponential, logarithmic — all with positive/negative/inv variants)
 - GLSL snippets each set `solid` (bool) and `d_curve` (float) — template pre-declares both

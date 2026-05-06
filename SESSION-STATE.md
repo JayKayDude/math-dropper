@@ -26,6 +26,7 @@
 
 - 2026-05-04: Full design spec locked. Repo initialized and pushed to GitHub.
 - 2026-05-05: Full game implemented and polished. 2-player co-op mode added. Dynamic camera zoom for 2P.
+- 2026-05-06: ABS_NEG and ABS_INV impossibility bug fixed. Full 30-type passability audit — zero failures.
 
 ## Current State
 
@@ -43,4 +44,4 @@ Game is fully playable with 1P and 2P modes. All features complete:
 ## Next Actions
 
 - Deploy to Vercel
-- Potential: mobile/touch controls, sound
+- Potential: mobile/touch controls, sound, additional function types
