@@ -4,16 +4,13 @@
 **Memory Type:** Working (transient)
 **Lifecycle:** Prune at session start per §7.0.4
 
-> This file tracks CURRENT work state only.
-> Historical information → PROJECT-MEMORY.md (decisions) or LEARNING-LOG.md (lessons)
-
 ---
 
 ## Current Position
 
-- **Phase:** Implement (complete) → Polish
+- **Phase:** Polish / done
 - **Mode:** Standard
-- **Active Task:** Gameplay polish and tuning
+- **Active Task:** —
 
 ## Quick Reference
 
@@ -28,21 +25,20 @@
 ## Session Summary
 
 - 2026-05-04: Full design spec locked. Repo initialized and pushed to GitHub.
-- 2026-05-05: Full game implemented and polished. 30 barrier types, animated tunnel, floaty player movement, dynamic difficulty, passability guard, countdown, pause system.
+- 2026-05-05: Full game implemented and polished. High score system added (localStorage). All screens updated. Ready for Vercel deployment.
 
 ## Current State
 
-Game is fully playable. Key systems:
-- 30 FuncTypes (rational, linear, quadratic, cubic, abs, circle, sine — all with variants)
-- Per-frame binary-search passability guard prevents impossible animation states
-- Animated shaft rings scroll at barrier fall speed
-- Quadratic speed ramp (20→100 over ~80 floors), spacing ramps 55→40 over 50 floors
-- Player max speed scales with floor (10→25)
-- Spinning barriers (25% chance, floor 6+)
-- 3s countdown, any-key start/retry, Esc to pause
+Game is fully playable and polished. All features complete:
+- 30 FuncTypes, animated tunnel, floaty player, dynamic difficulty, passability guard
+- High score persisted in localStorage (`mathDropper_highScore`)
+- High score displayed on start, retry, and pause screens
+- NEW BEST glow effect on retry screen
+- Any-key input for start/retry/resume; Esc to pause
 - Equation HUD shows all animated parameters live
+- Vercel-ready (Vite static build, no backend)
 
 ## Next Actions
 
-- Further tuning as needed
+- Deploy to Vercel
 - Potential: mobile/touch controls, leaderboard, sound

@@ -27,6 +27,9 @@ barriers.onClear(floor => updateScore(floor));
 
 const clock = new THREE.Clock(false);
 
+const HS_KEY = 'mathDropper_highScore';
+let highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10);
+
 // State: 'idle' | 'countdown' | 'playing' | 'paused' | 'dead'
 let state = 'idle';
 let score = 0;
@@ -68,13 +71,18 @@ function startGame() {
 function onDeath() {
   state = 'dead';
   deathTimer = 1.2;
+  score = barriers.floor;
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem(HS_KEY, highScore);
+  }
   playerMesh.visible = false;
   explode(playerMesh.position.clone());
 }
 
 window.addEventListener('keydown', e => {
   if (e.code === 'Escape') {
-    if (state === 'playing') { state = 'paused'; showPause(); }
+    if (state === 'playing') { state = 'paused'; showPause(Math.max(highScore, barriers.floor)); }
     else if (state === 'paused') { state = 'playing'; hidePause(); }
     return;
   }
@@ -83,7 +91,7 @@ window.addEventListener('keydown', e => {
   else if (state === 'dead' && deathTimer <= 0) startGame();
 });
 
-showStart();
+showStart(highScore);
 
 function animate() {
   requestAnimationFrame(animate);
@@ -117,7 +125,6 @@ function animate() {
     updateEquation(barriers.getCurrentEquation());
 
     if (barriers.checkCollision(px, pz)) {
-      score = barriers.floor;
       onDeath();
     }
   }
@@ -125,7 +132,7 @@ function animate() {
   if (state === 'dead') {
     deathTimer -= delta;
     updateParticles(delta);
-    if (deathTimer <= 0) showRetry(score);
+    if (deathTimer <= 0) showRetry(score, highScore, score === highScore && score > 0);
   }
 
   // Shaft rings only scroll when barriers are moving
