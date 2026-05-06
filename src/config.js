@@ -16,6 +16,7 @@ export const COLLISION_EPSILON = 0.2;
 export const CAM_Y = 13;
 export const CAM_DEACTIVATE_Y = 20; // barriers recycle once they clear the camera
 
-export const TRON_RED = 0xff2244;
-export const TRON_CYAN = 0x00ffee;
-export const OBSIDIAN = 0x0a0a12;
+export const TRON_RED    = 0xff2244;
+export const TRON_CYAN   = 0x00ffee;
+export const TRON_YELLOW = 0xffee00;
+export const OBSIDIAN    = 0x0a0a12;

@@ -1,3 +1,25 @@
+// Inject button styles once
+const btnCSS = document.createElement('style');
+btnCSS.textContent = `
+  .mode-btn {
+    background: transparent;
+    border: 2px solid #ff2244;
+    color: #ff2244;
+    font-family: monospace;
+    font-size: 18px;
+    letter-spacing: 4px;
+    padding: 16px 40px;
+    cursor: pointer;
+    margin: 8px 16px;
+    transition: background 0.15s, text-shadow 0.15s;
+  }
+  .mode-btn:hover {
+    background: rgba(255,34,68,0.15);
+    text-shadow: 0 0 12px #ff2244, 0 0 24px #ff2244;
+  }
+`;
+document.head.appendChild(btnCSS);
+
 const overlayStyle = `
   position:fixed;top:0;left:0;width:100%;height:100%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -9,20 +31,27 @@ const overlayStyle = `
 const startEl = document.createElement('div');
 startEl.style.cssText = overlayStyle;
 startEl.innerHTML = `
-  <div style="font-size:48px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:40px">MATH DROPPER</div>
-  <div id="start-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:24px;display:none;text-shadow:0 0 12px #ff2244">BEST · <span id="start-best-num">0</span> FLOORS</div>
-  <div style="font-size:18px;letter-spacing:4px;opacity:0.7">PRESS ANY KEY TO START</div>
-  <div style="font-size:13px;letter-spacing:2px;opacity:0.75;margin-top:32px">MOVE · WASD OR ARROW KEYS</div>
+  <div style="font-size:48px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:32px">MATH DROPPER</div>
+  <div id="start-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:28px;text-shadow:0 0 12px #ff2244;display:none"></div>
+  <div style="display:flex;pointer-events:auto;margin-bottom:28px">
+    <button class="mode-btn mode-btn-1p">1 PLAYER</button>
+    <button class="mode-btn mode-btn-2p">2 PLAYER</button>
+  </div>
+  <div style="font-size:13px;letter-spacing:2px;opacity:0.75;margin-top:4px">
+    P1 · WASD &nbsp;&nbsp;·&nbsp;&nbsp; P2 · ARROW KEYS
+  </div>
 `;
 
 // ── Retry screen ──────────────────────────────────────────────────────────────
 const retryEl = document.createElement('div');
 retryEl.style.cssText = overlayStyle + 'display:none;';
 retryEl.innerHTML = `
-  <div id="retry-floor" style="font-size:64px;letter-spacing:6px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:16px">0</div>
-  <div style="font-size:16px;letter-spacing:4px;opacity:0.5;margin-bottom:16px">FLOORS</div>
-  <div id="retry-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:40px;text-shadow:0 0 12px #ff2244">BEST · 0</div>
-  <div style="font-size:18px;letter-spacing:4px;opacity:0.7">PRESS ANY KEY TO RETRY</div>
+  <div id="retry-scores" style="margin-bottom:12px"></div>
+  <div id="retry-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:32px;text-shadow:0 0 12px #ff2244">BEST · 0</div>
+  <div style="display:flex;pointer-events:auto;">
+    <button class="mode-btn mode-btn-1p">1 PLAYER</button>
+    <button class="mode-btn mode-btn-2p">2 PLAYER</button>
+  </div>
 `;
 
 // ── Countdown overlay ─────────────────────────────────────────────────────────
@@ -52,10 +81,19 @@ pauseEl.innerHTML = `
 
 document.body.append(startEl, retryEl, countdownEl, pauseEl);
 
-export function showStart(highScore) {
+// Wire all mode buttons to a single callback (covers both start + retry screens)
+export function onModeSelect(cb) {
+  document.querySelectorAll('.mode-btn-1p').forEach(el => el.onclick = () => cb(1));
+  document.querySelectorAll('.mode-btn-2p').forEach(el => el.onclick = () => cb(2));
+}
+
+export function showStart(hs1P, hs2P) {
   const bestEl = document.getElementById('start-best');
-  if (highScore > 0) {
-    document.getElementById('start-best-num').textContent = highScore;
+  const lines  = [];
+  if (hs1P > 0) lines.push(`1P BEST · ${hs1P}`);
+  if (hs2P > 0) lines.push(`2P BEST · ${hs2P}`);
+  if (lines.length) {
+    bestEl.innerHTML = lines.join('<br>');
     bestEl.style.display = 'block';
   } else {
     bestEl.style.display = 'none';
@@ -64,12 +102,31 @@ export function showStart(highScore) {
 }
 export function hideStart() { startEl.style.display = 'none'; }
 
-export function showRetry(score, highScore, isNewBest) {
-  document.getElementById('retry-floor').textContent = score;
-  const bestEl = document.getElementById('retry-best');
-  bestEl.innerHTML = isNewBest
-    ? `NEW BEST · <span style="text-shadow:0 0 20px #ff2244,0 0 40px #ff2244">${highScore}</span>`
-    : `BEST · ${highScore}`;
+export function showRetry(score1, bestScore, isNewBest, score2 = null) {
+  const scoresEl = document.getElementById('retry-scores');
+  if (score2 !== null) {
+    scoresEl.innerHTML = `
+      <div style="font-size:48px;letter-spacing:4px;margin-bottom:4px;text-shadow:0 0 16px #00ffee;color:#00ffee">
+        P1 · ${score1}
+      </div>
+      <div style="font-size:48px;letter-spacing:4px;margin-bottom:16px;text-shadow:0 0 16px #ffee00;color:#ffee00">
+        P2 · ${score2}
+      </div>
+      <div style="font-size:14px;letter-spacing:3px;opacity:0.5;margin-bottom:8px">FLOORS</div>
+    `;
+  } else {
+    scoresEl.innerHTML = `
+      <div style="font-size:64px;letter-spacing:6px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:16px">
+        ${score1}
+      </div>
+      <div style="font-size:16px;letter-spacing:4px;opacity:0.5;margin-bottom:8px">FLOORS</div>
+    `;
+  }
+
+  document.getElementById('retry-best').innerHTML = isNewBest
+    ? `NEW BEST · <span style="text-shadow:0 0 20px #ff2244,0 0 40px #ff2244">${bestScore}</span>`
+    : `BEST · ${bestScore}`;
+
   retryEl.style.display = 'flex';
 }
 export function hideRetry() { retryEl.style.display = 'none'; }
