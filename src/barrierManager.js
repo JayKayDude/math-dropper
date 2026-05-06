@@ -1,15 +1,27 @@
 import { Barrier } from './barrier.js';
-import { getDifficulty } from './difficulty.js';
-import { BARRIER_POOL_SIZE, BARRIER_SPACING, BARRIER_Y_PLAYER, COLLISION_EPSILON } from './config.js';
+import { getDifficulty, getPool } from './difficulty.js';
+import { BARRIER_POOL_SIZE, BARRIER_SPACING_START, BARRIER_SPACING_END, BARRIER_Y_PLAYER, COLLISION_EPSILON, CAM_DEACTIVATE_Y } from './config.js';
 import { equationString } from './mathFunctions.js';
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export class BarrierManager {
   constructor() {
     this.pool = Array.from({ length: BARRIER_POOL_SIZE }, () => new Barrier());
     this.floor = 0;
-    this.nextSpawnY = 0;
     this._onClear = null;
     this._onEquationChange = null;
+  }
+
+  get _spacing() {
+    return BARRIER_SPACING_START - (BARRIER_SPACING_START - BARRIER_SPACING_END) * Math.min(this.floor / 50, 1);
   }
 
   onClear(cb) { this._onClear = cb; }
@@ -17,26 +29,21 @@ export class BarrierManager {
 
   start(startingFloor = 0) {
     this.floor = startingFloor;
-    this.nextSpawnY = -BARRIER_SPACING;
     this.pool.forEach(b => b.deactivate());
 
-    // Pre-populate staggered barriers
+    const startingPool = shuffle(getPool(startingFloor));
     for (let i = 0; i < BARRIER_POOL_SIZE; i++) {
-      this._spawnOne(-(i + 1) * BARRIER_SPACING);
+      this._spawnOne(-(i + 1) * this._spacing, startingPool[i % startingPool.length]);
     }
   }
 
   reset() { this.start(0); }
 
-  _spawnOne(y) {
+  _spawnOne(y, forcedType = undefined) {
     const barrier = this.pool.find(b => !b.active);
     if (!barrier) return;
-    const diff = getDifficulty(this.floor);
-    barrier.reset(y, diff.funcType, diff.params, diff.animAmplitude, diff.animFrequency, diff.fallSpeed, diff.edgeWidth);
-    if (this._onEquationChange) {
-      this._onEquationChange(equationString(diff.funcType, diff.params));
-    }
-    this.nextSpawnY = y - BARRIER_SPACING;
+    const diff = getDifficulty(this.floor, forcedType);
+    barrier.reset(y, diff.funcType, diff.params, diff.animAmplitude, diff.animFrequency, diff.fallSpeed, diff.edgeWidth, diff.spinSpeed);
   }
 
   update(delta) {
@@ -45,22 +52,42 @@ export class BarrierManager {
       if (!b.active) continue;
       b.update(delta);
 
-      // Barrier passed the player — cleared safely
-      if (b.y > BARRIER_Y_PLAYER + 2) {
-        b.deactivate();
+      // Score as soon as the barrier clears the player level.
+      if (!b.passed && b.y > BARRIER_Y_PLAYER + 0.3) {
+        b.passed = true;
         this.floor++;
         cleared = true;
         if (this._onClear) this._onClear(this.floor);
       }
+
+      // Deactivate only after the barrier has swept fully past the camera.
+      if (b.y > CAM_DEACTIVATE_Y) {
+        b.deactivate();
+      }
     }
 
-    // Spawn new barrier if there's room below
-    const lowestActive = this.pool.filter(b => b.active).reduce((min, b) => Math.min(min, b.y), 0);
-    if (lowestActive > this.nextSpawnY + BARRIER_SPACING * 0.5) {
-      this._spawnOne(this.nextSpawnY);
+    // Spawn a replacement whenever a pool slot opens — always directly below
+    // the current lowest active barrier so spacing stays consistent.
+    const active = this.pool.filter(b => b.active);
+    if (active.length > 0 && active.length < BARRIER_POOL_SIZE) {
+      const lowestY = Math.min(...active.map(b => b.y));
+      this._spawnOne(lowestY - this._spacing);
     }
 
     return cleared;
+  }
+
+  getCurrentEquation() {
+    // Only look at barriers still approaching from below (not yet passed the player).
+    // Among those, pick the one closest to the player.
+    let closest = null;
+    let minDist = Infinity;
+    for (const b of this.pool) {
+      if (!b.active || b.passed) continue;
+      const dist = BARRIER_Y_PLAYER - b.y; // positive = below player
+      if (dist >= 0 && dist < minDist) { minDist = dist; closest = b; }
+    }
+    return closest ? equationString(closest.funcType, closest.params) : '';
   }
 
   checkCollision(px, pz) {

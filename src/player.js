@@ -17,17 +17,36 @@ playerMesh.add(light);
 
 scene.add(playerMesh);
 
-export function updatePlayer(delta, keys) {
+const vel = new THREE.Vector2(0, 0);
+
+export function updatePlayer(delta, keys, maxSpeed = PLAYER_SPEED) {
+  const accel = maxSpeed * 5;
+  const drag  = maxSpeed * 3.5;
+
+  if (keys.left)  vel.x -= accel * delta;
+  if (keys.right) vel.x += accel * delta;
+  if (keys.up)    vel.y -= accel * delta;
+  if (keys.down)  vel.y += accel * delta;
+
+  if (!keys.left && !keys.right) {
+    const dx = drag * delta;
+    vel.x = Math.abs(vel.x) <= dx ? 0 : vel.x - Math.sign(vel.x) * dx;
+  }
+  if (!keys.up && !keys.down) {
+    const dz = drag * delta;
+    vel.y = Math.abs(vel.y) <= dz ? 0 : vel.y - Math.sign(vel.y) * dz;
+  }
+
+  vel.x = Math.max(-maxSpeed, Math.min(maxSpeed, vel.x));
+  vel.y = Math.max(-maxSpeed, Math.min(maxSpeed, vel.y));
+
   const limit = PLAYFIELD_HALF - PLAYER_RADIUS;
-  if (keys.left)  playerMesh.position.x -= PLAYER_SPEED * delta;
-  if (keys.right) playerMesh.position.x += PLAYER_SPEED * delta;
-  if (keys.up)    playerMesh.position.z -= PLAYER_SPEED * delta;
-  if (keys.down)  playerMesh.position.z += PLAYER_SPEED * delta;
-  playerMesh.position.x = Math.max(-limit, Math.min(limit, playerMesh.position.x));
-  playerMesh.position.z = Math.max(-limit, Math.min(limit, playerMesh.position.z));
+  playerMesh.position.x = Math.max(-limit, Math.min(limit, playerMesh.position.x + vel.x * delta));
+  playerMesh.position.z = Math.max(-limit, Math.min(limit, playerMesh.position.z + vel.y * delta));
 }
 
 export function resetPlayer() {
+  vel.set(0, 0);
   playerMesh.position.set(0, PLAYER_RADIUS, 0);
   playerMesh.visible = true;
 }
