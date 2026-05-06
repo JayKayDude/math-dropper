@@ -21,7 +21,7 @@ retryEl.style.cssText = overlayStyle + 'display:none;';
 retryEl.innerHTML = `
   <div id="retry-floor" style="font-size:64px;letter-spacing:6px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:16px">0</div>
   <div style="font-size:16px;letter-spacing:4px;opacity:0.5;margin-bottom:16px">FLOORS</div>
-  <div id="retry-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:40px;text-shadow:0 0 12px #ff2244">BEST · <span id="retry-best-num">0</span></div>
+  <div id="retry-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:40px;text-shadow:0 0 12px #ff2244">BEST · 0</div>
   <div style="font-size:18px;letter-spacing:4px;opacity:0.7">PRESS ANY KEY TO RETRY</div>
 `;
 
@@ -66,9 +66,7 @@ export function hideStart() { startEl.style.display = 'none'; }
 
 export function showRetry(score, highScore, isNewBest) {
   document.getElementById('retry-floor').textContent = score;
-  const bestEl  = document.getElementById('retry-best');
-  const bestNum = document.getElementById('retry-best-num');
-  bestNum.textContent = highScore;
+  const bestEl = document.getElementById('retry-best');
   bestEl.innerHTML = isNewBest
     ? `NEW BEST · <span style="text-shadow:0 0 20px #ff2244,0 0 40px #ff2244">${highScore}</span>`
     : `BEST · ${highScore}`;
