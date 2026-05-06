@@ -16,7 +16,7 @@
 | Plan | Complete | 2026-05-04 | Architecture planned |
 | Implement | Complete | 2026-05-05 | Full game shipped |
 | Validate | Complete | 2026-05-05 | Playtesting and tuning done |
-| Polish | Complete | 2026-05-05 | High score, screens, keybinds, equation display |
+| Polish | Complete | 2026-05-05 | 2P mode, high score, screens, camera zoom |
 
 ---
 
@@ -35,12 +35,12 @@
 ### Math Function System
 - 30 FuncTypes across 15 pairs (rational, linear, quadratic, cubic, abs, circle, sine, exponential, logarithmic — all with positive/negative/inv variants)
 - GLSL snippets each set `solid` (bool) and `d_curve` (float) — template pre-declares both
-- Coordinate rotation for spinning: uAngle uniform rotates x/z before snippet evaluates — works for all 30 types
+- Coordinate rotation for spinning: uAngle uniform rotates x/z before snippet evaluates
 
 ### Passability Guard
 - Per-frame binary search prevents animation from creating impossible gaps
 - isPassable(): 10×10 grid + 4-neighbor clearance at PLAYER_RADIUS×1.5
-- If ideal h/k fails: binary search between current (valid) and ideal (invalid) — no lerp, no stutter
+- If ideal h/k fails: binary search between current (valid) and ideal (invalid)
 
 ### Spawn Logic
 - Always spawn at `lowestActive - _spacing`, NOT a tracked nextSpawnY offset
@@ -54,13 +54,18 @@
 ### Equation Display
 - equationString() uses LIVE animated params — must show h, k, b when non-trivial
 - Suppress near-zero terms (|k|<0.05, |h|<0.05) to avoid "+ 0.00" clutter
-- xh helper: `(x-h)` or `(x+|h|)` with correct sign
 
 ### High Score
-- Stored in localStorage under key `mathDropper_highScore`
-- Saved on death only; displayed on start, retry, and pause screens
-- Pause screen shows `max(storedHighScore, barriers.floor)` so it reflects in-run best
-- NEW BEST glow effect on retry screen when score === highScore && score > 0
+- 1P: localStorage `mathDropper_highScore`
+- 2P: localStorage `mathDropper_highScore2P` = max(score1, score2)
+- Saved on death; shown on start, retry, and pause screens
+
+### 2-Player Mode
+- `createPlayer(color, startX)` factory in player.js — no singleton
+- input.js exports `keysWASD`, `keysArrows`, and combined `keys` (1P uses combined)
+- Camera zooms out to Y=22 when both alive, lerps back to Y=13 (CAM_Y_LERP=1.2) on first death
+- Game ends only when both players dead; individual death triggers explosion + HUD label update
+- Clickable mode buttons (not keyboard) on start/retry screens — `pointer-events:auto` on buttons only
 
 ---
 

@@ -42,9 +42,11 @@ let score1 = 0, score2 = 0;
 let deathTimer = 0;
 let countdownTimer = 0;
 
-let camX = 0, camZ = 0;
-const CAM_LERP  = 3;
-const CAM_CLAMP = PLAYFIELD_HALF - 4;
+let camX = 0, camZ = 0, camY = CAM_Y;
+const CAM_LERP    = 3;
+const CAM_CLAMP   = PLAYFIELD_HALF - 4;
+const CAM_Y_2P    = 22;   // zoomed out when both players alive
+const CAM_Y_LERP  = 1.2;  // how fast height transitions
 
 function playerSpeed() {
   const f = barriers.floor;
@@ -52,26 +54,31 @@ function playerSpeed() {
 }
 
 function updateCamera(delta) {
-  const t = 1 - Math.exp(-CAM_LERP * delta);
+  const t  = 1 - Math.exp(-CAM_LERP * delta);
+  const ty = 1 - Math.exp(-CAM_Y_LERP * delta);
+
   let tx = player1.mesh.position.x;
   let tz = player1.mesh.position.z;
+  // Target height: zoomed out while both players are alive, normal otherwise
+  let targetY = CAM_Y;
 
   if (gameMode === 2) {
     if (!p1Dead && !p2Dead) {
       tx = (player1.mesh.position.x + player2.mesh.position.x) / 2;
       tz = (player1.mesh.position.z + player2.mesh.position.z) / 2;
+      targetY = CAM_Y_2P;
     } else if (p1Dead && !p2Dead) {
       tx = player2.mesh.position.x;
       tz = player2.mesh.position.z;
     }
-    // p2Dead but p1 alive: already using p1 position
   }
 
-  camX += (tx - camX) * t;
-  camZ += (tz - camZ) * t;
+  camX += (tx   - camX) * t;
+  camZ += (tz   - camZ) * t;
+  camY += (targetY - camY) * ty;
   camX = Math.max(-CAM_CLAMP, Math.min(CAM_CLAMP, camX));
   camZ = Math.max(-CAM_CLAMP, Math.min(CAM_CLAMP, camZ));
-  camera.position.set(camX, CAM_Y, camZ);
+  camera.position.set(camX, camY, camZ);
   camera.lookAt(camX, 0, camZ);
 }
 
@@ -83,7 +90,7 @@ function startGame(mode) {
   gameMode = mode;
   p1Dead = false; p2Dead = false;
   score1 = 0; score2 = 0;
-  camX = 0; camZ = 0;
+  camX = 0; camZ = 0; camY = CAM_Y;
   camera.position.set(0, CAM_Y, 0);
 
   player1 = createPlayer(TRON_CYAN, mode === 2 ? -2 : 0);
