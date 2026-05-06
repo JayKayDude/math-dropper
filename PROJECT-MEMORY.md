@@ -32,6 +32,12 @@
 
 ## Key Decisions
 
+### Equation HUD Tracking (2026-05-06)
+- `getCurrentEquation()` uses `Math.abs(b.y - BARRIER_Y_PLAYER) + (b.passed ? 1000 : 0)` as sort key
+- While a barrier approaches it wins naturally (distance → 0). The instant it scores (`b.passed = true`, same frame floor increments) it gets +1000 penalty so the next barrier takes over immediately
+- Equation and floor counter update at the exact same moment
+- Previous bugs: original code switched at y=0 (before floor increment), absolute-closest switched at midpoint (too late)
+
 ### ABS Passability Fix (2026-05-06)
 - `ABS_INV` (solid = z < a|x-h|+k, a>0): gap shrinks outward — at `|x-h|=10`, gap only exists if `k < (1-a)*10`. For large `a`, k must be negative.
   - Fix: `kCeil = (1-a)*10 - 3 - animAmplitude*0.6`; k spawns at or below kCeil.

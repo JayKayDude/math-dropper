@@ -27,6 +27,7 @@
 - 2026-05-04: Full design spec locked. Repo initialized and pushed to GitHub.
 - 2026-05-05: Full game implemented and polished. 2-player co-op mode added. Dynamic camera zoom for 2P.
 - 2026-05-06: ABS_NEG and ABS_INV impossibility bug fixed. Full 30-type passability audit — zero failures.
+- 2026-05-06: Equation HUD tracking fixed — now locks to current barrier and switches at the exact floor-increment moment.
 
 ## Current State
 

@@ -78,14 +78,15 @@ export class BarrierManager {
   }
 
   getCurrentEquation() {
-    // Only look at barriers still approaching from below (not yet passed the player).
-    // Among those, pick the one closest to the player.
+    // Track the barrier closest to player level. While a barrier is approaching it
+    // wins naturally. The moment it scores (b.passed, same instant floor increments)
+    // it gets a large distance penalty so the next approaching barrier takes over.
     let closest = null;
     let minDist = Infinity;
     for (const b of this.pool) {
-      if (!b.active || b.passed) continue;
-      const dist = BARRIER_Y_PLAYER - b.y; // positive = below player
-      if (dist >= 0 && dist < minDist) { minDist = dist; closest = b; }
+      if (!b.active) continue;
+      const dist = Math.abs(b.y - BARRIER_Y_PLAYER) + (b.passed ? 1000 : 0);
+      if (dist < minDist) { minDist = dist; closest = b; }
     }
     return closest ? equationString(closest.funcType, closest.params) : '';
   }
