@@ -363,39 +363,55 @@ export const glsl = {
 export function equationString(funcType, params) {
   const { h = 0, k = 0, a = 1, b = 1 } = params;
   const fmt = n => Number(n.toFixed(2));
-  const ks  = k >= 0 ? `+ ${fmt(k)}` : `- ${Math.abs(fmt(k))}`;
-  const hs  = fmt(h);
+
+  // Only show k offset when it's meaningfully nonzero
+  const ks = Math.abs(k) >= 0.05
+    ? (k >= 0 ? ` + ${fmt(k)}` : ` - ${fmt(-k)}`)
+    : '';
+
+  // Show (x-h) shift with correct sign, or just 'x' when h≈0
+  const xh = Math.abs(h) < 0.05 ? 'x'
+    : h > 0 ? `(x-${fmt(h)})`
+    : `(x+${fmt(-h)})`;
+
+  // Same for circle's y term
+  const yk = Math.abs(k) < 0.05 ? 'y'
+    : k > 0 ? `(y-${fmt(k)})`
+    : `(y+${fmt(-k)})`;
+
+  const hs = fmt(h);
+
   switch (funcType) {
-    case FuncType.RATIONAL:         return `y > ${fmt(a)}/x`;
-    case FuncType.RATIONAL_INV:     return `y < ${fmt(a)}/x`;
-    case FuncType.RATIONAL_NEG:     return `y > ${fmt(a)}/x`;
-    case FuncType.RATIONAL_NEG_INV: return `y < ${fmt(a)}/x`;
-    case FuncType.RATIONAL_T:       return `y > ${fmt(a)}/(x-${hs}) ${ks}`;
-    case FuncType.RATIONAL_T_INV:   return `y < ${fmt(a)}/(x-${hs}) ${ks}`;
-    case FuncType.RATIONAL_D:       return `y > ${fmt(a)}/(${fmt(b)}x)`;
-    case FuncType.RATIONAL_D_INV:   return `y < ${fmt(a)}/(${fmt(b)}x)`;
-    case FuncType.EXPONENTIAL:      return `y > ${fmt(a)}·e^(${fmt(b)}x) ${ks}`;
-    case FuncType.EXP_BELOW:        return `y < ${fmt(a)}·e^(${fmt(b)}x) ${ks}`;
-    case FuncType.LOGARITHMIC:      return `y > ${fmt(a)}·ln(x-${hs}) ${ks}`;
-    case FuncType.LOG_BELOW:        return `y < ${fmt(a)}·ln(x-${hs}) ${ks}`;
-    case FuncType.LINEAR:           return `y > ${fmt(a)}x ${ks}`;
-    case FuncType.LINEAR_INV:       return `y < ${fmt(a)}x ${ks}`;
-    case FuncType.QUADRATIC:        return `y > ${fmt(a)}x^2 ${ks}`;
-    case FuncType.QUADRATIC_INV:    return `y < ${fmt(a)}x^2 ${ks}`;
-    case FuncType.CUBIC:            return `y > ${fmt(a)}x^3`;
-    case FuncType.CUBIC_INV:        return `y < ${fmt(a)}x^3`;
-    case FuncType.ABS:              return `y > ${fmt(a)}|x| ${ks}`;
-    case FuncType.ABS_INV:          return `y < ${fmt(a)}|x| ${ks}`;
-    case FuncType.CIRCLE:           return `x^2 + y^2 > ${fmt(a)}^2`;
-    case FuncType.CIRCLE_INV:       return `x^2 + y^2 < ${fmt(a)}^2`;
-    case FuncType.SINE:             return `y > ${fmt(a)}·sin(${fmt(b)}x) ${ks}`;
-    case FuncType.SINE_INV:         return `y < ${fmt(a)}·sin(${fmt(b)}x) ${ks}`;
-    case FuncType.QUADRATIC_NEG:    return `y > ${fmt(a)}x^2 ${ks}`;
-    case FuncType.QUADRATIC_NEG_INV:return `y < ${fmt(a)}x^2 ${ks}`;
-    case FuncType.ABS_NEG:          return `y > ${fmt(a)}|x| ${ks}`;
-    case FuncType.ABS_NEG_INV:      return `y < ${fmt(a)}|x| ${ks}`;
-    case FuncType.CUBIC_NEG:        return `y > ${fmt(a)}x^3`;
-    case FuncType.CUBIC_NEG_INV:    return `y < ${fmt(a)}x^3`;
+    case FuncType.RATIONAL:         return `y > ${fmt(a)}/x${ks}`;
+    case FuncType.RATIONAL_INV:     return `y < ${fmt(a)}/x${ks}`;
+    case FuncType.RATIONAL_NEG:     return `y > ${fmt(a)}/x${ks}`;
+    case FuncType.RATIONAL_NEG_INV: return `y < ${fmt(a)}/x${ks}`;
+    case FuncType.RATIONAL_T:       return `y > ${fmt(a)}/(x-${hs})${ks}`;
+    case FuncType.RATIONAL_T_INV:   return `y < ${fmt(a)}/(x-${hs})${ks}`;
+    case FuncType.RATIONAL_D:       return `y > ${fmt(a)}/(${fmt(b)}x)${ks}`;
+    case FuncType.RATIONAL_D_INV:   return `y < ${fmt(a)}/(${fmt(b)}x)${ks}`;
+    case FuncType.EXPONENTIAL:      return `y > ${fmt(a)}·e^(${fmt(b)}x)${ks}`;
+    case FuncType.EXP_BELOW:        return `y < ${fmt(a)}·e^(${fmt(b)}x)${ks}`;
+    case FuncType.LOGARITHMIC:      return `y > ${fmt(a)}·ln(x-${hs})${ks}`;
+    case FuncType.LOG_BELOW:        return `y < ${fmt(a)}·ln(x-${hs})${ks}`;
+    case FuncType.LINEAR:           return `y > ${fmt(a)}x${ks}`;
+    case FuncType.LINEAR_INV:       return `y < ${fmt(a)}x${ks}`;
+    case FuncType.QUADRATIC:        return `y > ${fmt(a)}${xh}^2${ks}`;
+    case FuncType.QUADRATIC_INV:    return `y < ${fmt(a)}${xh}^2${ks}`;
+    case FuncType.QUADRATIC_NEG:    return `y > ${fmt(a)}${xh}^2${ks}`;
+    case FuncType.QUADRATIC_NEG_INV:return `y < ${fmt(a)}${xh}^2${ks}`;
+    case FuncType.CUBIC:            return `y > ${fmt(a)}${xh}^3`;
+    case FuncType.CUBIC_INV:        return `y < ${fmt(a)}${xh}^3`;
+    case FuncType.CUBIC_NEG:        return `y > ${fmt(a)}${xh}^3`;
+    case FuncType.CUBIC_NEG_INV:    return `y < ${fmt(a)}${xh}^3`;
+    case FuncType.ABS:              return `y > ${fmt(a)}|${xh}|${ks}`;
+    case FuncType.ABS_INV:          return `y < ${fmt(a)}|${xh}|${ks}`;
+    case FuncType.ABS_NEG:          return `y > ${fmt(a)}|${xh}|${ks}`;
+    case FuncType.ABS_NEG_INV:      return `y < ${fmt(a)}|${xh}|${ks}`;
+    case FuncType.CIRCLE:           return `${xh}^2 + ${yk}^2 > ${fmt(a)}^2`;
+    case FuncType.CIRCLE_INV:       return `${xh}^2 + ${yk}^2 < ${fmt(a)}^2`;
+    case FuncType.SINE:             return `y > ${fmt(a)}·sin(${fmt(b)}x)${ks}`;
+    case FuncType.SINE_INV:         return `y < ${fmt(a)}·sin(${fmt(b)}x)${ks}`;
     default: return '';
   }
 }
