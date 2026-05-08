@@ -7,12 +7,13 @@ let ctx        = null;
 let masterGain = null;
 let reverbNode = null;
 let bgGain     = null;
-let bgBuffer   = null;
+let bgBuffers  = [];   // decoded buffers for each track
+let bgTrack    = 0;    // index of currently playing track
 let bgSource   = null;
-let bgLoopStart = 0;
-let bgLoopEnd   = 0;
 let _muted  = localStorage.getItem('mathDropper_muted') === 'true';
 let _ducked = false;  // true when ambient is paused (death / ESC)
+
+const BG_TRACKS = ['/audio/Glass Pulse.mp3', '/audio/Glass Pulse 2.mp3'];
 
 let trackVol = getMusicVolume();
 
@@ -74,13 +75,17 @@ function setGain(gainNode, value, rampTime = 0) {
 }
 
 function startBGSource() {
-  if (!bgBuffer || !bgGain) return;
+  if (!bgBuffers.length || !bgGain) return;
+  const buf = bgBuffers[bgTrack % bgBuffers.length];
+  if (!buf) return;
   bgSource = ctx.createBufferSource();
-  bgSource.buffer    = bgBuffer;
-  bgSource.loop      = true;
-  bgSource.loopStart = bgLoopStart;
-  bgSource.loopEnd   = bgLoopEnd;
+  bgSource.buffer = buf;
+  bgSource.loop   = false;
   bgSource.connect(bgGain);
+  bgSource.onended = () => {
+    bgTrack = (bgTrack + 1) % bgBuffers.length;
+    startBGSource();
+  };
   bgSource.start();
 }
 
@@ -107,22 +112,18 @@ export function init() {
   bgGain.gain.value = 0;
   bgGain.connect(ctx.destination);
 
-  fetch('/audio/Glass Pulse.mp3')
-    .then(r => r.arrayBuffer())
-    .then(ab => ctx.decodeAudioData(ab))
-    .then(buf => {
-      bgBuffer = buf;
-      const pts = findLoopPoints(buf);
-      bgLoopStart = pts.loopStart;
-      bgLoopEnd   = pts.loopEnd;
-      startBGSource();
-      if (!_muted) {
-        const t = now();
-        bgGain.gain.setValueAtTime(0, t);
-        bgGain.gain.linearRampToValueAtTime(trackVol, t + 3);
-      }
-    })
-    .catch(err => console.warn('[audio] bgm load failed:', err));
+  Promise.all(BG_TRACKS.map(url =>
+    fetch(url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab))
+  )).then(buffers => {
+    bgBuffers = buffers;
+    bgTrack   = 0;
+    startBGSource();
+    if (!_muted) {
+      const t = now();
+      bgGain.gain.setValueAtTime(0, t);
+      bgGain.gain.linearRampToValueAtTime(trackVol, t + 3);
+    }
+  }).catch(err => console.warn('[audio] bgm load failed:', err));
 }
 
 // ── Mute ──────────────────────────────────────────────────────────────────────

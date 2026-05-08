@@ -88,7 +88,9 @@ export class BarrierManager {
       const dist = Math.abs(b.y - BARRIER_Y_PLAYER) + (b.passed ? 1000 : 0);
       if (dist < minDist) { minDist = dist; closest = b; }
     }
-    return closest ? equationString(closest.funcType, closest.params) : '';
+    return closest
+      ? { text: equationString(closest.funcType, closest.params), spinning: closest.spinSpeed !== 0 }
+      : { text: '', spinning: false };
   }
 
   checkCollision(px, pz) {

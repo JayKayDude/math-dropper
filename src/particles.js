@@ -34,7 +34,7 @@ export function explode(position) {
   // If already active (e.g. two players die simultaneously), use the second
   // half of the pool so both explosions are visible at once.
   const start = active ? COUNT >> 1 : 0;
-  if (!active) mat.opacity = 1;
+  mat.opacity = 1;
   active = true;
   points.visible = true;
 

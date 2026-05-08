@@ -4,8 +4,12 @@ const equationEl = document.getElementById('equation');
 let p1Label = null, p2Label = null;
 
 export function updateScore(n) { scoreEl.textContent = n; }
-export function updateEquation(str) { equationEl.textContent = str; }
-export function initEquation(str)   { equationEl.textContent = str; }
+export function updateEquation({ text, spinning }) {
+  equationEl.innerHTML = spinning
+    ? `${text} <span class="spin-icon">↻</span>`
+    : text;
+}
+export function initEquation(str) { equationEl.textContent = str; }
 
 export function setTwoPlayerMode(enabled) {
   if (enabled && !p1Label) {
