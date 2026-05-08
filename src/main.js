@@ -13,7 +13,10 @@ import {
   showCountdown, hideCountdown,
   showPause, hidePause,
   onModeSelect,
+  updateMuteButtons,
+  showSettings, hideSettings,
 } from './screens.js';
+import * as audio from './audio.js';
 
 scene.add(new THREE.AmbientLight(0x111122, 2));
 const dir = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -43,6 +46,7 @@ let deathTimer = 0;
 let countdownTimer = 0;
 
 let camX = 0, camZ = 0, camY = CAM_Y;
+let prevCountdownLabel = null;
 const CAM_LERP    = 3;
 const CAM_CLAMP   = PLAYFIELD_HALF - 4;
 const CAM_Y_2P    = 22;   // zoomed out when both players alive
@@ -83,6 +87,8 @@ function updateCamera(delta) {
 }
 
 function startGame(mode) {
+  prevCountdownLabel = null;
+  audio.resumeAmbient();
   // Clean up old player meshes
   if (player1) { player1.remove(); player1 = null; }
   if (player2) { player2.remove(); player2 = null; }
@@ -114,6 +120,7 @@ function startGame(mode) {
 function onDeath() {
   state = 'dead';
   deathTimer = 1.2;
+  audio.pauseAmbient();
 
   if (gameMode === 2) {
     const best = Math.max(score1, score2);
@@ -130,23 +137,35 @@ function onDeath() {
 }
 
 // Mode selection buttons wire up to startGame
-onModeSelect(mode => startGame(mode));
+onModeSelect(mode => { audio.init(); startGame(mode); });
+
+// Mute buttons (on all screens) — init audio on first interaction if not already done
+document.querySelectorAll('.mute-btn').forEach(btn => {
+  btn.onclick = () => {
+    audio.init();
+    audio.setMuted(!audio.isMuted());
+    updateMuteButtons(audio.isMuted());
+  };
+});
+updateMuteButtons(audio.isMuted());
 
 window.addEventListener('keydown', e => {
   if (e.code === 'Escape') {
     if (state === 'playing') {
       state = 'paused';
+      audio.pauseAmbient();
       const liveBest = gameMode === 2
         ? Math.max(highScore2P, score1, score2)
         : Math.max(highScore, barriers.floor);
       showPause(liveBest);
     } else if (state === 'paused') {
       state = 'playing';
+      audio.resumeAmbient();
       hidePause();
     }
     return;
   }
-  if (state === 'paused') { state = 'playing'; hidePause(); }
+  if (state === 'paused') { state = 'playing'; audio.resumeAmbient(); hidePause(); }
 });
 
 showStart(highScore, highScore2P);
@@ -157,7 +176,12 @@ function animate() {
 
   if (state === 'countdown') {
     countdownTimer -= delta;
-    showCountdown(countdownTimer > 0 ? Math.ceil(countdownTimer) : 'GO!');
+    const _label = countdownTimer > 0 ? Math.ceil(countdownTimer) : 'GO!';
+    if (_label !== prevCountdownLabel) {
+      prevCountdownLabel = _label;
+      audio.playCountdownBeep(_label === 'GO!' ? 0 : _label);
+    }
+    showCountdown(_label);
 
     // Players can move during countdown to pre-position
     const spd = playerSpeed();
@@ -182,6 +206,7 @@ function animate() {
         score1 = barriers.floor;
         player1.mesh.visible = false;
         explode(player1.mesh.position.clone());
+        audio.playDeath();
         if (gameMode === 2) setPlayerAlive(1, false);
       }
     }
@@ -193,6 +218,7 @@ function animate() {
         score2 = barriers.floor;
         player2.mesh.visible = false;
         explode(player2.mesh.position.clone());
+        audio.playDeath();
         setPlayerAlive(2, false);
       }
     }

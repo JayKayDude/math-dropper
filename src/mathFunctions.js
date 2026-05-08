@@ -36,13 +36,13 @@ export function isSolid(x, z, funcType, params) {
   switch (funcType) {
     case FuncType.RATIONAL:
     case FuncType.RATIONAL_NEG: {
-      if (Math.abs(x) < 0.001) return false;
+      if (Math.abs(x) < 0.001) return a < 0;
       const fval = a / x + k;
       return x > 0 ? z > fval : z < fval;
     }
     case FuncType.RATIONAL_INV:
     case FuncType.RATIONAL_NEG_INV: {
-      if (Math.abs(x) < 0.001) return true;
+      if (Math.abs(x) < 0.001) return a > 0;
       const fval = a / x + k;
       return x > 0 ? z < fval : z > fval;
     }
@@ -167,9 +167,26 @@ const _rationalInvGlsl = `
 
 export const glsl = {
   [FuncType.RATIONAL]:         _rationalGlsl,
-  [FuncType.RATIONAL_NEG]:     _rationalGlsl,
+  [FuncType.RATIONAL_NEG]: `
+    if (abs(x) < 0.001) {
+      solid   = true;
+      d_curve = 0.0;
+    } else {
+      float boundary = uA / x + uK;
+      float deriv    = -uA / (x * x);
+      solid   = (x > 0.001 && z > boundary) || (x < -0.001 && z < boundary);
+      d_curve = abs(z - boundary) / sqrt(1.0 + deriv * deriv);
+    }
+  `,
   [FuncType.RATIONAL_INV]:     _rationalInvGlsl,
-  [FuncType.RATIONAL_NEG_INV]: _rationalInvGlsl,
+  [FuncType.RATIONAL_NEG_INV]: `
+    if (abs(x) < 0.001) discard;
+    float boundary = uA / x + uK;
+    float deriv    = -uA / (x * x);
+    bool ns = (x > 0.001 && z > boundary) || (x < -0.001 && z < boundary);
+    solid   = !ns;
+    d_curve = abs(z - boundary) / sqrt(1.0 + deriv * deriv);
+  `,
 
   [FuncType.RATIONAL_T]: `
     float dx       = x - uH;

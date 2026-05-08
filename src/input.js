@@ -1,22 +1,46 @@
-export const keysWASD   = { left: false, right: false, up: false, down: false };
-export const keysArrows = { left: false, right: false, up: false, down: false };
+import { getKeybinds } from './settings.js';
 
-// Combined view for single-player (both WASD and arrows work)
+export const keysP1Primary   = { up: false, down: false, left: false, right: false };
+export const keysP1Secondary = { up: false, down: false, left: false, right: false };
+export const keysP2          = { up: false, down: false, left: false, right: false };
+
+// Combined for 1P — player can use either binding simultaneously
 export const keys = {
-  get left()  { return keysWASD.left  || keysArrows.left;  },
-  get right() { return keysWASD.right || keysArrows.right; },
-  get up()    { return keysWASD.up    || keysArrows.up;    },
-  get down()  { return keysWASD.down  || keysArrows.down;  },
+  get up()    { return keysP1Primary.up    || keysP1Secondary.up;    },
+  get down()  { return keysP1Primary.down  || keysP1Secondary.down;  },
+  get left()  { return keysP1Primary.left  || keysP1Secondary.left;  },
+  get right() { return keysP1Primary.right || keysP1Secondary.right; },
 };
 
-const wasdMap  = { KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down' };
-const arrowMap = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+// Backward-compatible aliases — main.js imports these names unchanged
+export const keysWASD   = keysP1Primary;
+export const keysArrows = keysP2;
+
+function invert(binding) {
+  const map = {};
+  for (const [dir, code] of Object.entries(binding)) map[code] = dir;
+  return map;
+}
+
+let p1PrimaryMap = {}, p1SecondaryMap = {}, p2Map = {};
+
+export function rebuildInputMaps() {
+  const kb    = getKeybinds();
+  p1PrimaryMap   = invert(kb.p1Primary);
+  p1SecondaryMap = invert(kb.p1Secondary);
+  p2Map          = invert(kb.p2);
+}
+
+rebuildInputMaps();
 
 window.addEventListener('keydown', e => {
-  if (wasdMap[e.code])  keysWASD[wasdMap[e.code]]   = true;
-  if (arrowMap[e.code]) keysArrows[arrowMap[e.code]] = true;
+  if (p1PrimaryMap[e.code])   keysP1Primary[p1PrimaryMap[e.code]]     = true;
+  if (p1SecondaryMap[e.code]) keysP1Secondary[p1SecondaryMap[e.code]] = true;
+  if (p2Map[e.code])          keysP2[p2Map[e.code]]                   = true;
 });
+
 window.addEventListener('keyup', e => {
-  if (wasdMap[e.code])  keysWASD[wasdMap[e.code]]   = false;
-  if (arrowMap[e.code]) keysArrows[arrowMap[e.code]] = false;
+  if (p1PrimaryMap[e.code])   keysP1Primary[p1PrimaryMap[e.code]]     = false;
+  if (p1SecondaryMap[e.code]) keysP1Secondary[p1SecondaryMap[e.code]] = false;
+  if (p2Map[e.code])          keysP2[p2Map[e.code]]                   = false;
 });

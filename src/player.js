@@ -7,7 +7,7 @@ export function createPlayer(color, startX = 0) {
   const mat  = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.5 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(startX, PLAYER_RADIUS, 0);
-  mesh.add(new THREE.PointLight(color, 3, 6));
+  mesh.add(new THREE.PointLight(color, 6, 14));
   scene.add(mesh);
 
   const vel = new THREE.Vector2(0, 0);

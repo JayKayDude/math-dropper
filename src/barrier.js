@@ -182,7 +182,6 @@ export class Barrier {
   }
 
   checkCollision(px, pz) {
-    // Rotate player into the barrier's coordinate frame before testing.
     if (this.spinAngle !== 0) {
       const c = Math.cos(this.spinAngle);
       const s = Math.sin(this.spinAngle);
