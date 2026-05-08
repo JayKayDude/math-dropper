@@ -2,6 +2,8 @@ import { getKeybinds, setKeybind, getMusicVolume, getSFXVolume, setMusicVolume a
 import { rebuildInputMaps } from './input.js';
 import * as audio from './audio.js';
 
+function click() { audio.init(); audio.playClick(); }
+
 // ── Key label map ────────────────────────────────────────────────────────────
 const KEY_LABELS = {
   KeyA:'A', KeyB:'B', KeyC:'C', KeyD:'D', KeyE:'E', KeyF:'F', KeyG:'G',
@@ -64,14 +66,23 @@ styleEl.textContent = `
     transition: border-color 0.15s, color 0.15s; pointer-events: auto;
   }
   .settings-btn:hover { border-color: #ff2244; color: #ff2244; }
-  .settings-select {
+  .keybind-btn {
     background: rgba(0,0,0,0.7); border: 1px solid rgba(255,34,68,0.5); color: #ff2244;
     font-family: monospace; font-size: 13px; letter-spacing: 1px;
     padding: 4px 8px; cursor: pointer; pointer-events: auto;
-    outline: none; appearance: none; -webkit-appearance: none;
     min-width: 90px; text-align: center;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .settings-select:focus { border-color: #ff2244; box-shadow: 0 0 6px #ff2244; }
+  .keybind-btn:hover { border-color: #ff2244; box-shadow: 0 0 6px rgba(255,34,68,0.5); }
+  .keybind-btn.listening {
+    border-color: #ff2244; color: #000; background: #ff2244;
+    box-shadow: 0 0 12px #ff2244, 0 0 24px #ff2244;
+    animation: keybind-pulse 0.7s ease-in-out infinite;
+  }
+  @keyframes keybind-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.55; }
+  }
   .settings-slider {
     -webkit-appearance: none; appearance: none;
     width: 180px; height: 3px; background: rgba(255,34,68,0.3);
@@ -98,6 +109,38 @@ const overlayStyle = `
 // ── Internal state ────────────────────────────────────────────────────────────
 let selectedMode = 1;
 let _onStart = null;
+let _listeningCancel = null;  // cancels an in-progress key capture
+
+function startKeyCapture(btn, slotKey, dir) {
+  // Cancel any previous capture first
+  if (_listeningCancel) _listeningCancel();
+
+  btn.classList.add('listening');
+  btn.textContent = 'PRESS KEY';
+
+  const onKey = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.code === 'Escape') { cancel(); return; }
+    setKeybind(slotKey, dir, e.code);
+    rebuildInputMaps();
+    refreshModeUI();
+    btn.classList.remove('listening');
+    btn.textContent = keyLabel(e.code);
+    _listeningCancel = null;
+    window.removeEventListener('keydown', onKey, true);
+  };
+
+  const cancel = () => {
+    btn.classList.remove('listening');
+    btn.textContent = keyLabel(getKeybinds()[slotKey][dir]);
+    _listeningCancel = null;
+    window.removeEventListener('keydown', onKey, true);
+  };
+
+  _listeningCancel = cancel;
+  window.addEventListener('keydown', onKey, true);
+}
 
 function refreshModeUI() {
   document.querySelectorAll('.mode-btn-1p').forEach(el => el.classList.toggle('selected', selectedMode === 1));
@@ -162,11 +205,8 @@ pauseEl.innerHTML = `
 const settingsEl = document.createElement('div');
 settingsEl.style.cssText = overlayStyle + 'display:none;overflow-y:auto;padding:40px 0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(0,0,0,0.88);';
 
-function buildSelectHTML(id, currentCode) {
-  const opts = Object.entries(KEY_LABELS)
-    .map(([code, label]) => `<option value="${code}"${code === currentCode ? ' selected' : ''}>${label}</option>`)
-    .join('');
-  return `<select class="settings-select" id="${id}">${opts}</select>`;
+function buildKeybindBtnHTML(id, currentCode) {
+  return `<button class="keybind-btn" id="${id}">${keyLabel(currentCode)}</button>`;
 }
 
 function buildKeybindSection(slotKey, title) {
@@ -175,7 +215,7 @@ function buildKeybindSection(slotKey, title) {
   const rows = dirs.map(([dir, label]) =>
     `<div style="display:flex;align-items:center;justify-content:space-between;width:260px;margin:5px 0">
        <span style="font-size:12px;letter-spacing:3px;opacity:0.7;width:70px">${label}</span>
-       ${buildSelectHTML(`kb-${slotKey}-${dir}`, kb[dir])}
+       ${buildKeybindBtnHTML(`kb-${slotKey}-${dir}`, kb[dir])}
      </div>`
   ).join('');
   return `
@@ -215,16 +255,11 @@ function renderSettingsContent() {
     <button class="start-btn" id="settings-close" style="margin-top:36px;pointer-events:auto">CLOSE</button>
   `;
 
-  // Wire keybind selects
-  const slots = { p1Primary: 'p1Primary', p1Secondary: 'p1Secondary', p2: 'p2' };
-  for (const [slotKey] of Object.entries(slots)) {
-    for (const dir of ['up','down','left','right']) {
-      const sel = document.getElementById(`kb-${slotKey}-${dir}`);
-      if (sel) sel.addEventListener('change', e => {
-        setKeybind(slotKey, dir, e.target.value);
-        rebuildInputMaps();
-        refreshModeUI();
-      });
+  // Wire keybind capture buttons
+  for (const slotKey of ['p1Primary', 'p1Secondary', 'p2']) {
+    for (const dir of ['up', 'down', 'left', 'right']) {
+      const btn = document.getElementById(`kb-${slotKey}-${dir}`);
+      if (btn) btn.addEventListener('click', () => { click(); startKeyCapture(btn, slotKey, dir); });
     }
   }
 
@@ -243,31 +278,34 @@ function renderSettingsContent() {
   });
 
   // Wire close button
-  document.getElementById('settings-close').onclick = hideSettings;
+  document.getElementById('settings-close').onclick = () => { click(); hideSettings(); };
 }
 
 document.body.append(startEl, retryEl, countdownEl, pauseEl, settingsEl);
 
 // Wire mode buttons
-document.querySelectorAll('.mode-btn-1p').forEach(el => el.addEventListener('click', () => { selectedMode = 1; refreshModeUI(); }));
-document.querySelectorAll('.mode-btn-2p').forEach(el => el.addEventListener('click', () => { selectedMode = 2; refreshModeUI(); }));
+document.querySelectorAll('.mode-btn-1p').forEach(el => el.addEventListener('click', () => { click(); selectedMode = 1; refreshModeUI(); }));
+document.querySelectorAll('.mode-btn-2p').forEach(el => el.addEventListener('click', () => { click(); selectedMode = 2; refreshModeUI(); }));
 
 // Wire settings buttons
-document.querySelectorAll('.settings-btn').forEach(el => el.addEventListener('click', showSettings));
+document.querySelectorAll('.settings-btn').forEach(el => el.addEventListener('click', () => { click(); showSettings(); }));
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 export function onModeSelect(cb) {
   _onStart = cb;
   document.querySelectorAll('.start-btn').forEach(el =>
-    el.addEventListener('click', () => _onStart && _onStart(selectedMode)));
+    el.addEventListener('click', () => { click(); _onStart && _onStart(selectedMode); }));
 }
 
 export function showSettings() {
   renderSettingsContent();
   settingsEl.style.display = 'flex';
 }
-export function hideSettings() { settingsEl.style.display = 'none'; }
+export function hideSettings() {
+  if (_listeningCancel) _listeningCancel();
+  settingsEl.style.display = 'none';
+}
 
 export function showStart(hs1P, hs2P) {
   const bestEl = document.getElementById('start-best');

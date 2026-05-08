@@ -21,10 +21,28 @@
 
 ```
 Math Dropper/
-├── index.html          # Entry point, HUD elements
+├── index.html                  # Entry point, HUD elements, spin icon CSS
 ├── package.json
+├── public/
+│   └── audio/
+│       ├── Glass Pulse.mp3     # Background track 1
+│       └── Glass Pulse 2.mp3  # Background track 2
 ├── src/
-│   └── main.js         # Three.js scene entry point
+│   ├── main.js                 # Game loop, state machine, collision handling
+│   ├── scene.js                # Three.js scene, camera, post-processing
+│   ├── shaft.js                # Tunnel rings, corner lines, wall planes
+│   ├── player.js               # Player sphere factory (supports 1P and 2P)
+│   ├── barrier.js              # Barrier mesh, shader, collision, spin
+│   ├── barrierManager.js       # Pool management, spawn, floor tracking
+│   ├── mathFunctions.js        # isSolid(), GLSL snippets, equationString()
+│   ├── difficulty.js           # getDifficulty(), unlock schedule
+│   ├── hud.js                  # Score, equation display, player labels
+│   ├── screens.js              # Start, retry, pause, countdown, settings overlays
+│   ├── input.js                # Keyboard state, dynamic keymaps, rebuildInputMaps()
+│   ├── settings.js             # Keybind + volume persistence (localStorage)
+│   ├── audio.js                # Web Audio SFX + cycling background music
+│   ├── particles.js            # Death explosion particle system
+│   └── config.js               # Shared constants
 ├── SESSION-STATE.md
 ├── PROJECT-MEMORY.md
 ├── LEARNING-LOG.md

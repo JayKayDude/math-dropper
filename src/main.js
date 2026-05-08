@@ -88,6 +88,7 @@ function updateCamera(delta) {
 
 function startGame(mode) {
   prevCountdownLabel = null;
+  audio.startMusic();
   audio.resumeAmbient();
   // Clean up old player meshes
   if (player1) { player1.remove(); player1 = null; }
@@ -137,12 +138,13 @@ function onDeath() {
 }
 
 // Mode selection buttons wire up to startGame
-onModeSelect(mode => { audio.init(); startGame(mode); });
+onModeSelect(mode => { startGame(mode); });
 
 // Mute buttons (on all screens) — init audio on first interaction if not already done
 document.querySelectorAll('.mute-btn').forEach(btn => {
   btn.onclick = () => {
     audio.init();
+    audio.playClick();
     audio.setMuted(!audio.isMuted());
     updateMuteButtons(audio.isMuted());
   };

@@ -91,11 +91,11 @@ function startBGSource() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
+// Sets up SFX only — safe to call on first button click before game starts.
 export function init() {
   if (ctx) return;
-
   ctx = new AudioContext();
-  ctx.resume();  // required for Safari and Chrome autoplay policy
+  ctx.resume();
 
   masterGain = ctx.createGain();
   masterGain.gain.value = _muted ? 0 : getSFXVolume();
@@ -111,7 +111,11 @@ export function init() {
   bgGain = ctx.createGain();
   bgGain.gain.value = 0;
   bgGain.connect(ctx.destination);
+}
 
+// Loads and starts music — call when a game run begins.
+export function startMusic() {
+  if (!ctx || bgBuffers.length) return;
   Promise.all(BG_TRACKS.map(url =>
     fetch(url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab))
   )).then(buffers => {
@@ -164,6 +168,14 @@ export function resumeAmbient() {
 }
 
 // ── Sound effects ─────────────────────────────────────────────────────────────
+
+export function playClick() {
+  if (!ctx) return;
+  const out = ctx.createGain();
+  out.gain.value = 0.3;
+  out.connect(masterGain);
+  sineShot(1200, now(), 0.045, 1.0, out);
+}
 
 export function playCountdownBeep(n) {
   if (!ctx) return;
