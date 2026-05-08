@@ -1,4 +1,5 @@
-import { getKeybinds, setKeybind, getMusicVolume, getSFXVolume, setMusicVolume as saveMusicVol, setSFXVolume as saveSFXVol } from './settings.js';
+import { getKeybinds, setKeybind, getMusicVolume, getSFXVolume, setMusicVolume as saveMusicVol, setSFXVolume as saveSFXVol, getPlayerColor, setPlayerColor } from './settings.js';
+import { PLAYER_COLOR_HEX } from './config.js';
 import { rebuildInputMaps } from './input.js';
 import * as audio from './audio.js';
 
@@ -70,7 +71,7 @@ styleEl.textContent = `
     background: rgba(0,0,0,0.7); border: 1px solid rgba(255,34,68,0.5); color: #ff2244;
     font-family: monospace; font-size: 13px; letter-spacing: 1px;
     padding: 4px 8px; cursor: pointer; pointer-events: auto;
-    min-width: 90px; text-align: center;
+    min-width: 62px; text-align: center;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .keybind-btn:hover { border-color: #ff2244; box-shadow: 0 0 6px rgba(255,34,68,0.5); }
@@ -82,6 +83,26 @@ styleEl.textContent = `
   @keyframes keybind-pulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.55; }
+  }
+  .color-swatch {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer; pointer-events: auto;
+    transition: transform 0.1s, box-shadow 0.15s;
+    flex-shrink: 0; position: relative; overflow: hidden;
+  }
+  .color-swatch:hover { transform: scale(1.18); }
+  .color-swatch.selected { border-color: #fff; box-shadow: 0 0 10px var(--sw-color), 0 0 20px var(--sw-color); }
+  .color-swatch.taken { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+  .color-swatch.taken::after {
+    content: '';
+    position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+    background: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1.5px),
+      #ff2244 calc(50% - 1.5px),
+      #ff2244 calc(50% + 1.5px),
+      transparent calc(50% + 1.5px)
+    );
   }
   .settings-slider {
     -webkit-appearance: none; appearance: none;
@@ -205,29 +226,61 @@ pauseEl.innerHTML = `
 const settingsEl = document.createElement('div');
 settingsEl.style.cssText = overlayStyle + 'display:none;overflow-y:auto;padding:40px 0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(0,0,0,0.88);';
 
+function buildColorSection() {
+  const colorKeys = Object.keys(PLAYER_COLOR_HEX);
+  const p1 = getPlayerColor(1);
+  const p2 = getPlayerColor(2);
+
+  const swatchRow = (player, currentKey, otherKey) =>
+    colorKeys.map(key => {
+      const hex = PLAYER_COLOR_HEX[key];
+      const selected = key === currentKey ? 'selected' : '';
+      const taken    = key === otherKey   ? 'taken'    : '';
+      return `<button class="color-swatch ${selected} ${taken}"
+        id="cs-p${player}-${key}"
+        style="background:${hex};--sw-color:${hex}"
+        title="${key}"></button>`;
+    }).join('');
+
+  return `
+    <div style="margin-bottom:20px;text-align:center">
+      <div style="display:flex;align-items:center;gap:12px;margin:6px 0;width:300px">
+        <span style="font-size:12px;letter-spacing:3px;opacity:0.7;width:26px">P1</span>
+        <div style="display:flex;gap:8px;pointer-events:auto">${swatchRow(1, p1, p2)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin:6px 0;width:300px">
+        <span style="font-size:12px;letter-spacing:3px;opacity:0.7;width:26px">P2</span>
+        <div style="display:flex;gap:8px;pointer-events:auto">${swatchRow(2, p2, p1)}</div>
+      </div>
+    </div>`;
+}
+
 function buildKeybindBtnHTML(id, currentCode) {
   return `<button class="keybind-btn" id="${id}">${keyLabel(currentCode)}</button>`;
 }
 
 function buildKeybindSection(slotKey, title) {
   const kb   = getKeybinds()[slotKey];
-  const dirs = [['up','UP'], ['down','DOWN'], ['left','LEFT'], ['right','RIGHT']];
-  const rows = dirs.map(([dir, label]) =>
-    `<div style="display:flex;align-items:center;justify-content:space-between;width:260px;margin:5px 0">
-       <span style="font-size:12px;letter-spacing:3px;opacity:0.7;width:70px">${label}</span>
+  const dirs = [['up','↑'], ['down','↓'], ['left','←'], ['right','→']];
+  const btns = dirs.map(([dir, arrow]) =>
+    `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+       <span style="font-size:11px;opacity:0.5">${arrow}</span>
        ${buildKeybindBtnHTML(`kb-${slotKey}-${dir}`, kb[dir])}
      </div>`
   ).join('');
   return `
-    <div style="margin-bottom:20px;text-align:center">
-      <div style="font-size:13px;letter-spacing:4px;opacity:0.6;margin-bottom:10px">${title}</div>
-      ${rows}
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;letter-spacing:4px;opacity:0.6;margin-bottom:6px">${title}</div>
+      <div style="display:flex;gap:8px;pointer-events:auto">${btns}</div>
     </div>`;
 }
 
 function renderSettingsContent() {
   settingsEl.innerHTML = `
-    <div style="font-size:36px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:32px">SETTINGS</div>
+    <div style="font-size:36px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:20px">SETTINGS</div>
+
+    <div style="font-size:13px;letter-spacing:5px;opacity:0.5;margin-bottom:16px;border-bottom:1px solid rgba(255,34,68,0.2);padding-bottom:8px;width:300px;text-align:center">COLOR</div>
+    ${buildColorSection()}
 
     <div style="font-size:13px;letter-spacing:5px;opacity:0.5;margin-bottom:16px;border-bottom:1px solid rgba(255,34,68,0.2);padding-bottom:8px;width:300px;text-align:center">KEYBINDS</div>
 
@@ -254,6 +307,19 @@ function renderSettingsContent() {
 
     <button class="start-btn" id="settings-close" style="margin-top:36px;pointer-events:auto">CLOSE</button>
   `;
+
+  // Wire color swatches
+  for (const player of [1, 2]) {
+    for (const key of Object.keys(PLAYER_COLOR_HEX)) {
+      const btn = document.getElementById(`cs-p${player}-${key}`);
+      if (!btn || btn.classList.contains('taken')) continue;
+      btn.addEventListener('click', () => {
+        click();
+        setPlayerColor(player, key);
+        renderSettingsContent(); // re-render to update selected/taken states
+      });
+    }
+  }
 
   // Wire keybind capture buttons
   for (const slotKey of ['p1Primary', 'p1Secondary', 'p2']) {
@@ -322,9 +388,11 @@ export function hideStart() { startEl.style.display = 'none'; }
 export function showRetry(score1, bestScore, isNewBest, score2 = null) {
   const scoresEl = document.getElementById('retry-scores');
   if (score2 !== null) {
+    const p1Hex = PLAYER_COLOR_HEX[getPlayerColor(1)];
+    const p2Hex = PLAYER_COLOR_HEX[getPlayerColor(2)];
     scoresEl.innerHTML = `
-      <div style="font-size:48px;letter-spacing:4px;margin-bottom:4px;text-shadow:0 0 16px #00ffee;color:#00ffee">P1 · ${score1}</div>
-      <div style="font-size:48px;letter-spacing:4px;margin-bottom:16px;text-shadow:0 0 16px #ffee00;color:#ffee00">P2 · ${score2}</div>
+      <div style="font-size:48px;letter-spacing:4px;margin-bottom:4px;text-shadow:0 0 16px ${p1Hex};color:${p1Hex}">P1 · ${score1}</div>
+      <div style="font-size:48px;letter-spacing:4px;margin-bottom:16px;text-shadow:0 0 16px ${p2Hex};color:${p2Hex}">P2 · ${score2}</div>
       <div style="font-size:14px;letter-spacing:3px;opacity:0.5;margin-bottom:8px">FLOORS</div>`;
   } else {
     scoresEl.innerHTML = `

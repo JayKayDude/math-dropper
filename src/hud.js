@@ -11,15 +11,15 @@ export function updateEquation({ text, spinning }) {
 }
 export function initEquation(str) { equationEl.textContent = str; }
 
-export function setTwoPlayerMode(enabled) {
+export function setTwoPlayerMode(enabled, p1Hex = '#00ffee', p2Hex = '#ffee00') {
   if (enabled && !p1Label) {
     const hud = document.getElementById('hud');
 
     p1Label = document.createElement('div');
     p1Label.style.cssText = `
       position:absolute;top:24px;left:32px;
-      color:#00ffee;font-size:16px;letter-spacing:3px;
-      text-shadow:0 0 10px #00ffee;font-family:monospace;
+      color:${p1Hex};font-size:16px;letter-spacing:3px;
+      text-shadow:0 0 10px ${p1Hex};font-family:monospace;
     `;
     p1Label.textContent = 'P1';
     hud.appendChild(p1Label);
@@ -27,8 +27,8 @@ export function setTwoPlayerMode(enabled) {
     p2Label = document.createElement('div');
     p2Label.style.cssText = `
       position:absolute;top:24px;right:32px;
-      color:#ffee00;font-size:16px;letter-spacing:3px;
-      text-shadow:0 0 10px #ffee00;font-family:monospace;
+      color:${p2Hex};font-size:16px;letter-spacing:3px;
+      text-shadow:0 0 10px ${p2Hex};font-family:monospace;
     `;
     p2Label.textContent = 'P2';
     hud.appendChild(p2Label);

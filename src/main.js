@@ -4,7 +4,8 @@ import { createShaft, updateShaft } from './shaft.js';
 import { createPlayer } from './player.js';
 import { keys, keysWASD, keysArrows } from './input.js';
 import { BarrierManager } from './barrierManager.js';
-import { PLAYFIELD_HALF, CAM_Y, BASE_FALL_SPEED, MAX_FALL_SPEED, PLAYER_SPEED, PLAYER_MAX_SPEED, TRON_CYAN, TRON_YELLOW } from './config.js';
+import { PLAYFIELD_HALF, CAM_Y, BASE_FALL_SPEED, MAX_FALL_SPEED, PLAYER_SPEED, PLAYER_MAX_SPEED, PLAYER_COLORS, PLAYER_COLOR_HEX } from './config.js';
+import { getPlayerColor } from './settings.js';
 import { explode, updateParticles } from './particles.js';
 import { updateScore, updateEquation, initEquation, setTwoPlayerMode, setPlayerAlive } from './hud.js';
 import {
@@ -100,11 +101,16 @@ function startGame(mode) {
   camX = 0; camZ = 0; camY = CAM_Y;
   camera.position.set(0, CAM_Y, 0);
 
-  player1 = createPlayer(TRON_CYAN, mode === 2 ? -2 : 0);
-  if (mode === 2) player2 = createPlayer(TRON_YELLOW, 2);
+  const p1ColorKey = getPlayerColor(1);
+  const p2ColorKey = getPlayerColor(2);
+  const p1Hex = PLAYER_COLOR_HEX[p1ColorKey];
+  const p2Hex = PLAYER_COLOR_HEX[p2ColorKey];
+
+  player1 = createPlayer(PLAYER_COLORS[p1ColorKey], mode === 2 ? -2 : 0);
+  if (mode === 2) player2 = createPlayer(PLAYER_COLORS[p2ColorKey], 2);
 
   barriers.reset();
-  setTwoPlayerMode(mode === 2);
+  setTwoPlayerMode(mode === 2, p1Hex, p2Hex);
   if (mode === 2) { setPlayerAlive(1, true); setPlayerAlive(2, true); }
   updateScore(0);
 

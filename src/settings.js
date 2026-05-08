@@ -6,6 +6,8 @@ const DEFAULTS = {
   },
   musicVolume: 0.45,
   sfxVolume:   0.70,
+  p1Color: 'cyan',
+  p2Color: 'yellow',
 };
 
 function deepMerge(defaults, saved) {
@@ -36,6 +38,12 @@ export function getKeybinds() { return state.keybinds; }
 
 export function setKeybind(slot, direction, keyCode) {
   state.keybinds[slot][direction] = keyCode;
+  save();
+}
+
+export function getPlayerColor(player) { return state[`p${player}Color`]; }
+export function setPlayerColor(player, key) {
+  state[`p${player}Color`] = key;
   save();
 }
 

@@ -19,4 +19,27 @@ export const CAM_DEACTIVATE_Y = 20; // barriers recycle once they clear the came
 export const TRON_RED    = 0xff2244;
 export const TRON_CYAN   = 0x00ffee;
 export const TRON_YELLOW = 0xffee00;
+export const TRON_BLUE   = 0x4488ff;
+export const TRON_PURPLE = 0xcc44ff;
+export const TRON_GREEN  = 0x44ff88;
+export const TRON_PINK   = 0xff44aa;
 export const OBSIDIAN    = 0x0a0a12;
+
+export const PLAYER_COLORS = {
+  cyan:   TRON_CYAN,
+  yellow: TRON_YELLOW,
+  blue:   TRON_BLUE,
+  purple: TRON_PURPLE,
+  green:  TRON_GREEN,
+  pink:   TRON_PINK,
+};
+
+// CSS hex strings for each color key (used in UI)
+export const PLAYER_COLOR_HEX = {
+  cyan:   '#00ffee',
+  yellow: '#ffee00',
+  blue:   '#4488ff',
+  purple: '#cc44ff',
+  green:  '#44ff88',
+  pink:   '#ff44aa',
+};
