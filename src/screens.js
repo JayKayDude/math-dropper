@@ -131,6 +131,7 @@ const overlayStyle = `
 let selectedMode = 1;
 let _onStart = null;
 let _listeningCancel = null;  // cancels an in-progress key capture
+let _retryHS1P = 0, _retryHS2P = 0, _retryGameMode = 1, _retryIsNewBest = false;
 
 function startKeyCapture(btn, slotKey, dir) {
   // Cancel any previous capture first
@@ -169,6 +170,13 @@ function refreshModeUI() {
   document.querySelectorAll('.keybind-display').forEach(el => {
     el.innerHTML = getControlLines(selectedMode).map(l => `<div style="margin:3px 0">${l}</div>`).join('');
   });
+  if (retryEl.style.display !== 'none') {
+    const hs = selectedMode === 2 ? _retryHS2P : _retryHS1P;
+    const newBest = _retryIsNewBest && selectedMode === _retryGameMode;
+    document.getElementById('retry-best').innerHTML = newBest
+      ? `NEW BEST · <span style="text-shadow:0 0 20px #ff2244,0 0 40px #ff2244">${hs}</span>`
+      : `BEST · ${hs}`;
+  }
 }
 
 function buildModeBlock() {
@@ -187,7 +195,10 @@ const startEl = document.createElement('div');
 startEl.style.cssText = overlayStyle;
 startEl.innerHTML = `
   <button class="mute-btn" id="mute-btn-start">SOUND ON</button>
-  <button class="settings-btn" id="settings-btn-start">SETTINGS</button>
+  <div style="position:absolute;top:14px;left:16px;display:flex;gap:8px;pointer-events:auto">
+    <button class="settings-btn" id="settings-btn-start" style="position:static">SETTINGS</button>
+    <button class="settings-btn" id="credits-btn-start" style="position:static">CREDITS</button>
+  </div>
   <div style="font-size:48px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:32px">MATH DROPPER</div>
   <div id="start-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:28px;text-shadow:0 0 12px #ff2244;display:none"></div>
   ${buildModeBlock()}
@@ -198,7 +209,10 @@ const retryEl = document.createElement('div');
 retryEl.style.cssText = overlayStyle + 'display:none;';
 retryEl.innerHTML = `
   <button class="mute-btn" id="mute-btn-retry">SOUND ON</button>
-  <button class="settings-btn" id="settings-btn-retry">SETTINGS</button>
+  <div style="position:absolute;top:14px;left:16px;display:flex;gap:8px;pointer-events:auto">
+    <button class="settings-btn" id="settings-btn-retry" style="position:static">SETTINGS</button>
+    <button class="settings-btn" id="credits-btn-retry" style="position:static">CREDITS</button>
+  </div>
   <div id="retry-scores" style="margin-bottom:12px"></div>
   <div id="retry-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:28px;text-shadow:0 0 12px #ff2244">BEST · 0</div>
   ${buildModeBlock()}
@@ -347,14 +361,49 @@ function renderSettingsContent() {
   document.getElementById('settings-close').onclick = () => { click(); hideSettings(); };
 }
 
-document.body.append(startEl, retryEl, countdownEl, pauseEl, settingsEl);
+// ── Credits overlay ───────────────────────────────────────────────────────────
+const creditsEl = document.createElement('div');
+creditsEl.style.cssText = overlayStyle + 'display:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(0,0,0,0.88);';
+creditsEl.innerHTML = `
+  <div style="font-size:36px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:40px">CREDITS</div>
+  <div style="width:260px;display:flex;flex-direction:column;gap:28px;text-align:center">
+    <div>
+      <div style="font-size:12px;letter-spacing:5px;opacity:0.85;margin-bottom:10px">GAME</div>
+      <div style="font-size:20px;letter-spacing:4px;text-shadow:0 0 10px #ff2244">Jayke C</div>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:5px;opacity:0.85;margin-bottom:10px">MUSIC</div>
+      <div style="font-size:17px;letter-spacing:3px;line-height:2">Glass Pulse<br>Glass Pulse 2</div>
+      <div style="font-size:11px;letter-spacing:3px;opacity:0.5;margin-top:6px">Generated with Suno</div>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:5px;opacity:0.85;margin-bottom:10px">3D RENDERING</div>
+      <div style="font-size:17px;letter-spacing:3px">Three.js</div>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:5px;opacity:0.85;margin-bottom:10px">BUILD TOOL</div>
+      <div style="font-size:17px;letter-spacing:3px">Vite</div>
+    </div>
+  </div>
+  <button id="credits-close" style="background:transparent;border:2px solid #ff2244;color:#ff2244;font-family:monospace;font-size:22px;letter-spacing:6px;padding:18px 64px;cursor:pointer;margin-top:40px;pointer-events:auto;transition:background 0.15s,text-shadow 0.15s" onmouseover="this.style.background='rgba(255,34,68,0.15)';this.style.textShadow='0 0 14px #ff2244,0 0 28px #ff2244'" onmouseout="this.style.background='transparent';this.style.textShadow=''">CLOSE</button>
+`;
+
+document.body.append(startEl, retryEl, countdownEl, pauseEl, settingsEl, creditsEl);
 
 // Wire mode buttons
 document.querySelectorAll('.mode-btn-1p').forEach(el => el.addEventListener('click', () => { click(); selectedMode = 1; refreshModeUI(); }));
 document.querySelectorAll('.mode-btn-2p').forEach(el => el.addEventListener('click', () => { click(); selectedMode = 2; refreshModeUI(); }));
 
 // Wire settings buttons
-document.querySelectorAll('.settings-btn').forEach(el => el.addEventListener('click', () => { click(); showSettings(); }));
+document.querySelectorAll('.settings-btn').forEach(el => {
+  if (el.id === 'credits-btn-start' || el.id === 'credits-btn-retry') return;
+  el.addEventListener('click', () => { click(); showSettings(); });
+});
+
+// Wire credits buttons
+['credits-btn-start', 'credits-btn-retry'].forEach(id =>
+  document.getElementById(id).addEventListener('click', () => { click(); creditsEl.style.display = 'flex'; }));
+document.getElementById('credits-close').addEventListener('click', e => { e.stopPropagation(); click(); creditsEl.style.display = 'none'; });
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
@@ -385,7 +434,12 @@ export function showStart(hs1P, hs2P) {
 }
 export function hideStart() { startEl.style.display = 'none'; }
 
-export function showRetry(score1, bestScore, isNewBest, score2 = null) {
+export function showRetry(score1, hs1P, hs2P, gameMode, isNewBest, score2 = null) {
+  _retryHS1P = hs1P;
+  _retryHS2P = hs2P;
+  _retryGameMode = gameMode;
+  _retryIsNewBest = isNewBest;
+
   const scoresEl = document.getElementById('retry-scores');
   if (score2 !== null) {
     const p1Hex = PLAYER_COLOR_HEX[getPlayerColor(1)];
@@ -399,9 +453,11 @@ export function showRetry(score1, bestScore, isNewBest, score2 = null) {
       <div style="font-size:64px;letter-spacing:6px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:16px">${score1}</div>
       <div style="font-size:16px;letter-spacing:4px;opacity:0.5;margin-bottom:8px">FLOORS</div>`;
   }
-  document.getElementById('retry-best').innerHTML = isNewBest
-    ? `NEW BEST · <span style="text-shadow:0 0 20px #ff2244,0 0 40px #ff2244">${bestScore}</span>`
-    : `BEST · ${bestScore}`;
+  const hs = selectedMode === 2 ? hs2P : hs1P;
+  const newBest = isNewBest && selectedMode === gameMode;
+  document.getElementById('retry-best').innerHTML = newBest
+    ? `NEW BEST · <span style="text-shadow:0 0 20px #ff2244,0 0 40px #ff2244">${hs}</span>`
+    : `BEST · ${hs}`;
   refreshModeUI();
   retryEl.style.display = 'flex';
 }

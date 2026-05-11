@@ -248,10 +248,10 @@ function animate() {
       if (gameMode === 2) {
         const best     = Math.max(score1, score2);
         const isNewBest = best === highScore2P && best > 0;
-        showRetry(score1, highScore2P, isNewBest, score2);
+        showRetry(score1, highScore, highScore2P, 2, isNewBest, score2);
       } else {
         const isNewBest = score1 === highScore && score1 > 0;
-        showRetry(score1, highScore, isNewBest);
+        showRetry(score1, highScore, highScore2P, 1, isNewBest);
       }
     }
   }
