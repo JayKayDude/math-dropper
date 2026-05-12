@@ -50,6 +50,7 @@ export class BarrierManager {
     let cleared = false;
     for (const b of this.pool) {
       if (!b.active) continue;
+      b._prevY = b.y;   // snapshot before movement for swept collision
       b.update(delta);
 
       // Score as soon as the barrier clears the player level.
@@ -96,8 +97,12 @@ export class BarrierManager {
   checkCollision(px, pz) {
     for (const b of this.pool) {
       if (!b.active) continue;
-      const atPlayer = Math.abs(b.y - BARRIER_Y_PLAYER) < COLLISION_EPSILON;
-      if (atPlayer && b.checkCollision(px, pz)) return true;
+      const inWindow = Math.abs(b.y - BARRIER_Y_PLAYER) < COLLISION_EPSILON;
+      // Swept: barrier jumped from below player plane to above the window in one update —
+      // the COLLISION_EPSILON window is narrower than one frame of movement at high speeds.
+      const prevY = b._prevY ?? b.y;
+      const swept = prevY < BARRIER_Y_PLAYER && b.y > BARRIER_Y_PLAYER + COLLISION_EPSILON;
+      if ((inWindow || swept) && b.checkCollision(px, pz)) return true;
     }
     return false;
   }
