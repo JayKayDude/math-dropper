@@ -387,6 +387,7 @@ function _showRick() {
 function _hideRick() {
   _rickOverlay.style.display = 'none';
   _rickFrame.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+  _rickFrame.contentWindow?.postMessage('{"event":"command","func":"seekTo","args":[0,true]}', '*');
 }
 
 _rickCloseBtn.addEventListener('click', _hideRick);
