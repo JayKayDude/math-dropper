@@ -199,7 +199,7 @@ startEl.innerHTML = `
     <button class="settings-btn" id="settings-btn-start" style="position:static">SETTINGS</button>
     <button class="settings-btn" id="credits-btn-start" style="position:static">CREDITS</button>
   </div>
-  <div style="font-size:48px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:32px">MATH DROPPER</div>
+  <div id="game-title" style="font-size:48px;letter-spacing:8px;text-shadow:0 0 20px #ff2244,0 0 40px #ff2244;margin-bottom:32px;cursor:pointer;user-select:none;pointer-events:auto">MATH DROPPER</div>
   <div id="start-best" style="font-size:22px;letter-spacing:5px;opacity:0.85;margin-bottom:28px;text-shadow:0 0 12px #ff2244;display:none"></div>
   ${buildModeBlock()}
 `;
@@ -361,6 +361,39 @@ function renderSettingsContent() {
   document.getElementById('settings-close').onclick = () => { click(); hideSettings(); };
 }
 
+// ── Rick roll overlay (preloaded) ────────────────────────────────────────────
+const _rickOverlay = document.createElement('div');
+_rickOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:20000;display:none;align-items:center;justify-content:center;';
+
+const _rickFrame = document.createElement('iframe');
+_rickFrame.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1&autoplay=0&rel=0';
+_rickFrame.allow = 'autoplay; fullscreen';
+_rickFrame.style.cssText = 'width:100%;height:100%;border:none;';
+
+const _rickCloseBtn = document.createElement('div');
+_rickCloseBtn.textContent = '✕';
+_rickCloseBtn.style.cssText = 'position:absolute;top:20px;right:28px;font-size:52px;color:#ff2244;cursor:pointer;font-family:monospace;z-index:20001;text-shadow:0 0 12px #ff2244,0 0 28px #ff2244;transition:text-shadow 0.15s,transform 0.15s;line-height:1;';
+_rickCloseBtn.onmouseover = () => { _rickCloseBtn.style.textShadow = '0 0 20px #ff2244,0 0 50px #ff2244,0 0 80px #ff2244'; _rickCloseBtn.style.transform = 'scale(1.15)'; };
+_rickCloseBtn.onmouseout  = () => { _rickCloseBtn.style.textShadow = '0 0 12px #ff2244,0 0 28px #ff2244'; _rickCloseBtn.style.transform = 'scale(1)'; };
+
+_rickOverlay.appendChild(_rickFrame);
+_rickOverlay.appendChild(_rickCloseBtn);
+document.body.appendChild(_rickOverlay);
+
+function _showRick() {
+  _rickOverlay.style.display = 'flex';
+  _rickFrame.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+}
+function _hideRick() {
+  _rickOverlay.style.display = 'none';
+  _rickFrame.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+}
+
+_rickCloseBtn.addEventListener('click', _hideRick);
+window.addEventListener('keydown', e => {
+  if (e.code === 'Escape' && _rickOverlay.style.display !== 'none') { e.stopPropagation(); _hideRick(); }
+}, true);
+
 // ── Credits overlay ───────────────────────────────────────────────────────────
 const creditsEl = document.createElement('div');
 creditsEl.style.cssText = overlayStyle + 'display:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(0,0,0,0.88);';
@@ -405,6 +438,117 @@ document.querySelectorAll('.settings-btn').forEach(el => {
   document.getElementById(id).addEventListener('click', () => { click(); creditsEl.style.display = 'flex'; }));
 document.getElementById('credits-close').addEventListener('click', e => { e.stopPropagation(); click(); creditsEl.style.display = 'none'; });
 
+// ── Easter egg: crack the title ───────────────────────────────────────────────
+const _crackSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+_crackSvg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+_crackSvg.innerHTML = '<defs><filter id="cglow"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+document.body.appendChild(_crackSvg);
+
+let _crackCount = 0, _crackFadeTimer = null, _crackResetTimer = null, _crackShattering = false;
+let _crackTips = []; // {x, y, angle} — the far end of each bolt, used to continue outward next click
+
+function _addCrackPath(d, color, width) {
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', d); p.setAttribute('stroke', color);
+  p.setAttribute('stroke-width', width); p.setAttribute('fill', 'none');
+  p.setAttribute('filter', 'url(#cglow)');
+  _crackSvg.appendChild(p);
+  const len = p.getTotalLength();
+  p.style.strokeDasharray = len;
+  p.style.strokeDashoffset = len;
+  p.style.transition = `stroke-dashoffset ${0.1 + Math.random() * 0.15}s ease-out`;
+  requestAnimationFrame(() => requestAnimationFrame(() => { p.style.strokeDashoffset = '0'; }));
+}
+
+// Draws one lightning bolt from (x,y) in `angle` direction, pushes its tip into `tipsOut`
+function _spawnBolt(x, y, angle, scale, tipsOut) {
+  const totalLen = (90 + Math.random() * 110) * scale;
+  let cx = x, cy = y, a = angle;
+  let d = `M ${cx} ${cy}`;
+  const segs = 3 + Math.floor(Math.random() * 3);
+  for (let j = 0; j < segs; j++) {
+    a += (Math.random() - 0.5) * 0.55;
+    const sl = totalLen / segs;
+    cx += Math.cos(a) * sl; cy += Math.sin(a) * sl;
+    d += ` L ${cx.toFixed(1)} ${cy.toFixed(1)}`;
+  }
+  _addCrackPath(d, scale > 2.5 ? '#ffffff' : '#ff2244', scale > 2.5 ? '2' : '1.5');
+  tipsOut.push({ x: cx, y: cy, angle: a });
+  // Branch at ~45% chance
+  if (Math.random() < 0.45) {
+    const progress = 0.35 + Math.random() * 0.35;
+    const mx = x + Math.cos(angle) * totalLen * progress;
+    const my = y + Math.sin(angle) * totalLen * progress;
+    const ba = angle + (Math.random() > 0.5 ? 1 : -1) * (0.65 + Math.random() * 0.85);
+    const bl = totalLen * 0.5;
+    const bx = mx + Math.cos(ba) * bl, by = my + Math.sin(ba) * bl;
+    _addCrackPath(`M ${mx.toFixed(1)} ${my.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)}`, '#ff4455', '1');
+    tipsOut.push({ x: bx, y: by, angle: ba });
+  }
+}
+
+function _resetCracks() {
+  const defs = _crackSvg.querySelector('defs');
+  _crackSvg.innerHTML = ''; if (defs) _crackSvg.appendChild(defs);
+  _crackCount = 0; _crackShattering = false; _crackTips = [];
+  _crackSvg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:1;transition:none;';
+}
+
+function _shatterTitle(x, y) {
+  _crackShattering = true;
+  const dummy = [];
+  for (const tip of _crackTips) {
+    _spawnBolt(tip.x, tip.y, tip.angle + (Math.random() - 0.5) * 0.4, 3.5, dummy);
+    _spawnBolt(tip.x, tip.y, tip.angle + (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random()), 3, dummy);
+  }
+  for (let i = 0; i < 18; i++) {
+    _spawnBolt(x + (Math.random()-0.5)*300, y + (Math.random()-0.5)*200, Math.random()*Math.PI*2, 4, dummy);
+  }
+  const flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;opacity:0.85;z-index:10000;pointer-events:none;transition:opacity 0.3s';
+  document.body.appendChild(flash);
+  requestAnimationFrame(() => requestAnimationFrame(() => { flash.style.opacity = '0'; }));
+  setTimeout(() => flash.remove(), 400);
+  setTimeout(() => {
+    _showRick();
+    _crackSvg.style.transition = 'opacity 0.8s';
+    _crackSvg.style.opacity = '0';
+    setTimeout(_resetCracks, 900);
+  }, 250);
+}
+
+document.getElementById('game-title').addEventListener('click', e => {
+  if (_crackShattering) return;
+  if (_crackFadeTimer) { clearTimeout(_crackFadeTimer); _crackFadeTimer = null; }
+  if (_crackResetTimer) { clearTimeout(_crackResetTimer); _crackResetTimer = null; }
+  _crackSvg.style.transition = 'none'; _crackSvg.style.opacity = '1';
+  _crackCount++;
+  const scale = 0.75 + _crackCount * 0.32;
+  const newTips = [];
+
+  // Radiate from click point in evenly-spaced directions
+  const spokes = 6 + Math.floor(_crackCount / 2);
+  for (let i = 0; i < spokes; i++) {
+    _spawnBolt(e.clientX, e.clientY, (Math.PI * 2 * i / spokes) + (Math.random()-0.5)*0.35, scale, newTips);
+  }
+
+  // Continue each tip from the PREVIOUS click outward (capped to avoid explosion)
+  const prevTips = _crackTips.length > 24 ? _crackTips.sort(() => Math.random()-0.5).slice(0, 24) : _crackTips;
+  for (const tip of prevTips) {
+    _spawnBolt(tip.x, tip.y, tip.angle + (Math.random()-0.5)*0.45, scale * 0.8, newTips);
+  }
+
+  _crackTips = newTips;
+
+  if (_crackCount >= 10) { _shatterTitle(e.clientX, e.clientY); return; }
+  _crackFadeTimer = setTimeout(() => {
+    _crackSvg.style.transition = 'opacity 0.5s';
+    _crackSvg.style.opacity = '0';
+    _crackResetTimer = setTimeout(_resetCracks, 500);
+    _crackFadeTimer = null;
+  }, 1000);
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 export function onModeSelect(cb) {
@@ -432,7 +576,11 @@ export function showStart(hs1P, hs2P) {
   refreshModeUI();
   startEl.style.display = 'flex';
 }
-export function hideStart() { startEl.style.display = 'none'; }
+export function hideStart() {
+  startEl.style.display = 'none';
+  if (_crackFadeTimer) { clearTimeout(_crackFadeTimer); _crackFadeTimer = null; }
+  _resetCracks();
+}
 
 export function showRetry(score1, hs1P, hs2P, gameMode, isNewBest, score2 = null) {
   _retryHS1P = hs1P;
